@@ -28,15 +28,18 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+        <spring-cloud.version>2026.0.0</spring-cloud.version>
 	</properties>
     <dependencyManagement>
+    <dependencies>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-dependencies</artifactId>
-            <version>2023.0.1</version>
+            <version>2025.1.1</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
+    </dependencies>
     </dependencyManagement>
 	<dependencies>
 		<dependency>
@@ -85,6 +88,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webclient</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>3.0.1</version> 
         </dependency>
 
         <dependency>

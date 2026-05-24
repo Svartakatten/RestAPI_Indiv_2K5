@@ -14,7 +14,7 @@ import com.example.demo.exception.AuthorNotFoundException;
 import com.example.demo.repository.AuthorRepository;
 import com.example.demo.repository.BookRepository;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthorService {
@@ -26,7 +26,7 @@ public class AuthorService {
         this.bookRepository = bookRepository;
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     @Cacheable(value = "authors", key = "#author.id")
     public AuthorResponseDTO getAuthorById(Long id) {
         Author author = authorRepository.findById(id)
@@ -34,7 +34,7 @@ public class AuthorService {
         return mapToResponse(author);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     @Cacheable(value = "author-books", key = "#id + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<BookResponseDTO> getBooksByAuthorId(Long id, Pageable pageable) {
         if (!authorRepository.existsById(id)) {
@@ -46,6 +46,7 @@ public class AuthorService {
         return books.map(this::mapBookToResponse);
     }
 
+    @Transactional
     public AuthorResponseDTO createAuthor(AuthorRequestDTO request) {
         Author author = new Author();
         author.setName(request.getName());

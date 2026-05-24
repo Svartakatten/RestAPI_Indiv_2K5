@@ -20,5 +20,4 @@ public class RateLimitingService {
             .addLimit(limit -> limit.capacity(50).refillIntervally(50, Duration.ofMinutes(1)))
             .build();
     }
-    
 }

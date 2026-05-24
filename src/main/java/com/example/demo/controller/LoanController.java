@@ -1,8 +1,9 @@
 package com.example.demo.controller;
 
 import java.net.URI;
-import java.util.List;
 
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.web.PageableDefault;
@@ -18,6 +19,7 @@ import com.example.demo.dto.LoanRequestDTO;
 import com.example.demo.dto.LoanResponseDTO;
 import com.example.demo.service.LoanService;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
 @RestController
@@ -30,6 +32,7 @@ public class LoanController {
     }
 
     @PostMapping
+    @Operation(summary = "Create a loan")
     public ResponseEntity<LoanResponseDTO> createLoan(@Valid @RequestBody LoanRequestDTO request) {
         LoanResponseDTO response = loanService.createLoan(request);
 
@@ -43,7 +46,8 @@ public class LoanController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<LoanResponseDTO>> getAllLoans(@PageableDefault(size = 20) Pageable pageable) {
+    @Operation(summary = "Get all loans")
+    public ResponseEntity<Page<LoanResponseDTO>> getAllLoans(@ParameterObject @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(loanService.getAllLoans(pageable));
     }
 

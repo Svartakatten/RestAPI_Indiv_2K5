@@ -1,9 +1,9 @@
-package com.example.demo.dto;
+package com.example.demo.dto.v2;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-public class BookResponseDTO {
+public class BookResponseDTOV2 {
     @NotNull(message = "Book ID is required")
     private Long id;
     @NotBlank(message = "Title is required")
@@ -18,8 +18,10 @@ public class BookResponseDTO {
     @NotBlank(message = "availability is required")
     private boolean available;
 
+    private String libraryBranch;
 
     // Gets
+    public String getLibraryBranch() { return libraryBranch; }
     public Long getId() { return id; }
     public String getTitle() { return title; }
     public Long getAuthorId() { return authorId; }
@@ -29,6 +31,7 @@ public class BookResponseDTO {
 
 
     // Sets
+    public void setLibraryBranch(String libraryBranch){ this.libraryBranch = libraryBranch; }
     public void setId(Long id) { this.id = id; }
     public void setTitle(String title) { this.title = title; }
     public void setAuthorId(Long authorId) { this.authorId = authorId; }

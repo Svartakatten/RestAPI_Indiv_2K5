@@ -33,6 +33,8 @@ public class Book {
 
     private int publishedYear;
 
+    private String libraryBranch;
+
     public Book() {}
 
     public Book(String title, Author author, String isbn, int publishedYear) {
@@ -43,6 +45,7 @@ public class Book {
     }
 
     // Gets
+    public String getLibraryBranch() { return libraryBranch; }
     public Long getId() { return id; }
 
     public String getTitle() { return title; }
@@ -63,6 +66,8 @@ public class Book {
 
 
     // Sets
+    public void setLibraryBranch(String libraryBranch){ this.libraryBranch = libraryBranch; }
+
     public void setTitle(String title) { this.title = title; }
 
     public void setAuthor(Author author) { this.author = author; }

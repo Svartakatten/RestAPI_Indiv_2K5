@@ -1,7 +1,6 @@
 package com.example.demo.service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,7 +15,7 @@ import com.example.demo.exception.ResourceNotFoundException;
 import com.example.demo.repository.BookRepository;
 import com.example.demo.repository.LoanRepository;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
@@ -51,6 +50,7 @@ public class LoanService {
         return new LoanResponseDTO(savedLoan);
     }
 
+    @Transactional(readOnly = true)
     public Page<LoanResponseDTO> getAllLoans(Pageable pageable) {
         return loanRepository.findAll(pageable).map(this::mapToResponse);
     }
