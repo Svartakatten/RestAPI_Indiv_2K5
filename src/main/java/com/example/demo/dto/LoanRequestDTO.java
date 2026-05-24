@@ -3,6 +3,7 @@ package com.example.demo.dto;
 import jakarta.validation.constraints.NotNull;
 
 public class LoanRequestDTO {
+    
     @NotNull(message = "Book ID is required")
     private Long bookId;
 

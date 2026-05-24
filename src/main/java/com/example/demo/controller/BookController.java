@@ -9,6 +9,9 @@ import com.example.demo.service.BookService;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -16,6 +19,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 
 @RestController
@@ -28,11 +33,19 @@ public class BookController {
 
     // Build API
     @GetMapping
-    public ResponseEntity<List<BookResponseDTO>> getAllBooks() {
-        List<BookResponseDTO> books = bookService.getAllBooks();
+    public ResponseEntity<Page<BookResponseDTO>> getAllBooks(@PageableDefault(size = 20) Pageable pageable) {
+        Page<BookResponseDTO> books = bookService.getAllBooks(pageable);
 
         return ResponseEntity.ok(books);
     }
+
+    @GetMapping
+    public ResponseEntity<Page<BookResponseDTO>> getBookById(@PathVariable Long id, @PageableDefault(size = 20) Pageable pageable) {
+        BookResponseDTO response = bookService.getBookById(id);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+    
 
     @GetMapping
     public ResponseEntity<BookResponseDTO> getBookByIsbn(@PathVariable String isbn) {

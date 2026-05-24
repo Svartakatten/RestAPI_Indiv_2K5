@@ -1,19 +1,37 @@
 package com.example.demo.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import com.example.demo.dto.LoanRequestDTO;
+import com.example.demo.dto.LoanResponseDTO;
+import com.example.demo.entity.Book;
+import com.example.demo.entity.Loan;
+import com.example.demo.exception.BookAlreadyLoanedException;
+import com.example.demo.exception.ResourceNotFoundException;
+import com.example.demo.repository.BookRepository;
+import com.example.demo.repository.LoanRepository;
+
+import jakarta.transaction.Transactional;
+
 @Service
 @Transactional
-public class LoanServiceV2 {
+public class LoanService {
 
     private final LoanRepository loanRepository;
     private final BookRepository bookRepository;
 
-    public LoanServiceV2(LoanRepository loanRepository, BookRepository bookRepository) {
+    public LoanService(LoanRepository loanRepository, BookRepository bookRepository) {
         this.loanRepository = loanRepository;
         this.bookRepository = bookRepository;
     }
 
     @Transactional
-    public LoanResponseDTOV2 createLoan(LoanRequestDTOV2 request) {
+    public LoanResponseDTO createLoan(LoanRequestDTO request) {
         Book book = bookRepository.findById(request.getBookId())
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + request.getBookId()));
 
@@ -30,17 +48,15 @@ public class LoanServiceV2 {
 
         Loan savedLoan = loanRepository.saveAndFlush(loan);
 
-        return new LoanResponseDTOV2(savedLoan);
+        return new LoanResponseDTO(savedLoan);
     }
 
-    public List<LoanResponseDTOV2> getAllLoans() {
-        return loanRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .toList();
+    public Page<LoanResponseDTO> getAllLoans(Pageable pageable) {
+        return loanRepository.findAll(pageable).map(this::mapToResponse);
     }
 
-    private LoanResponseDTOV2 mapToResponse(Loan loan) {
-        LoanResponseDTOV2 response = new LoanResponseDTOV2();
+    private LoanResponseDTO mapToResponse(Loan loan) {
+        LoanResponseDTO response = new LoanResponseDTO();
         response.setId(loan.getId());
         response.setBookId(loan.getBook().getId());
         response.setBookTitle(loan.getBook().getTitle());

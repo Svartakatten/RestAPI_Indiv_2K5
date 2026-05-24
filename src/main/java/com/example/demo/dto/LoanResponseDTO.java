@@ -2,13 +2,20 @@ package com.example.demo.dto;
 
 import com.example.demo.entity.Loan;
 
+import jakarta.validation.constraints.NotBlank;
+
 import java.time.LocalDateTime;
 
 public class LoanResponseDTO {
+    @NotBlank(message = "Id is required")
     private Long id;
+    @NotBlank(message = "BookId is required")
     private Long bookId;
+    @NotBlank(message = "BookTitle is required")
     private String bookTitle;
+    @NotBlank(message = "LoanDate is required")
     private LocalDateTime loanDate;
+    @NotBlank(message = "ReturnDate is required")
     private LocalDateTime returnDate;
 
     public LoanResponseDTO() {}

@@ -1,9 +1,12 @@
 package com.example.demo.service;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.dto.BookRequestDTO;
@@ -47,6 +50,15 @@ public class BookService {
         return mapToResponse(savedBook);
     }
 
+    @Cacheable(value = "books", key = "#id")
+    public BookResponseDTO getBookById(Long id) {
+        Book book = bookRepo.findById(id)
+            .orElseThrow(() -> new BookNotFoundException("Book with id " + id + "missing"));
+
+        return mapToResponse(book);
+    }
+
+    @Cacheable(value = "books", key = "#isbn")
     public BookResponseDTO getBookByIsbn(String isbn) {
         Book book = bookRepo.findByIsbn(isbn)
             .orElseThrow(() -> new BookNotFoundException("Book with isbn " + isbn + "missing"));
@@ -54,14 +66,13 @@ public class BookService {
         return mapToResponse(book);
     }
 
-    public List<BookResponseDTO> getAllBooks() {
-        List<Book> books = bookRepo.findAll();
+    public Page<BookResponseDTO> getAllBooks(Pageable pageable) {
+        Page<Book> books = bookRepo.findAll(pageable);
 
-        return books.stream()
-            .map(this::mapToResponse)
-            .toList();
+        return books.map(this::mapToResponse);
     }
 
+    @CachePut(value = "books", key = "#book.id")
     @Transactional
     public BookResponseDTO updateBook(Long id, BookRequestDTO request) {
     Book book = bookRepo.findById(id)
@@ -78,6 +89,7 @@ public class BookService {
         return mapToResponse(book);
     }
 
+    @CachePut(value = "books", key = "#book.id")
     @Transactional
     public void removeBook(Long id) {
         Book book = bookRepo.findById(id)

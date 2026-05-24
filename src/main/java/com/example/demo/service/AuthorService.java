@@ -1,7 +1,8 @@
 package com.example.demo.service;
 
-import java.util.List;
-
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.dto.AuthorRequestDTO;
@@ -11,17 +12,22 @@ import com.example.demo.entity.Author;
 import com.example.demo.entity.Book;
 import com.example.demo.exception.AuthorNotFoundException;
 import com.example.demo.repository.AuthorRepository;
+import com.example.demo.repository.BookRepository;
 
 import jakarta.transaction.Transactional;
 
 @Service
 public class AuthorService {
     private final AuthorRepository authorRepository;
+    private final BookRepository bookRepository;
 
-    public AuthorService(AuthorRepository authorRepository) {
+    public AuthorService(AuthorRepository authorRepository, BookRepository bookRepository) {
         this.authorRepository = authorRepository;
+        this.bookRepository = bookRepository;
     }
 
+    @Transactional
+    @Cacheable(value = "authors", key = "#author.id")
     public AuthorResponseDTO getAuthorById(Long id) {
         Author author = authorRepository.findById(id)
                 .orElseThrow(() -> new AuthorNotFoundException("404: Author not found with the given id: " + id));
@@ -29,13 +35,15 @@ public class AuthorService {
     }
 
     @Transactional
-    public List<BookResponseDTO> getBooksByAuthorId(Long id) {
-        Author author = authorRepository.findById(id)
-                .orElseThrow(() -> new AuthorNotFoundException("404: Author not found"));
+    @Cacheable(value = "author-books", key = "#id + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    public Page<BookResponseDTO> getBooksByAuthorId(Long id, Pageable pageable) {
+        if (!authorRepository.existsById(id)) {
+            throw new AuthorNotFoundException("404: Author not found");
+        }
+        
+        Page<Book> books = bookRepository.findByAuthorId(id, pageable);
 
-        return author.getBooks().stream()
-                .map(this::mapBookToResponse)
-                .toList();
+        return books.map(this::mapBookToResponse);
     }
 
     public AuthorResponseDTO createAuthor(AuthorRequestDTO request) {
