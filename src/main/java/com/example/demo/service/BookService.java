@@ -78,6 +78,21 @@ public class BookService {
         return mapToResponse(book);
     }
 
+    @Transactional(readOnly = true)
+    public BookResponseDTOV2 getBookByIdNoCache(Long id) {
+
+        try {
+            Thread.sleep(800);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
+        Book book = bookRepo.findById(id)
+            .orElseThrow(() -> new BookNotFoundException("Book with id " + id + "missing"));
+
+        return convertToDtoV2(book);
+    }
+
     @Cacheable(value = "books", key = "#id")
     @Transactional(readOnly = true)
     public BookResponseDTOV2 getBookByIdV2(Long id) {

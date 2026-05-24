@@ -7,14 +7,14 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
+// import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.example.demo.service.RateLimitingService;
 
 import java.io.IOException;
 
-@Component
+// @Component
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private final RateLimitingService rateLimitingService;

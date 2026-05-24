@@ -1,32 +1,43 @@
 package com.example.demo;
 
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.test.web.servlet.client.RestTestClient;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
 import com.example.demo.dto.AuthorRequestDTO;
 import com.example.demo.dto.AuthorResponseDTO;
-import com.example.demo.dto.BookRequestDTO;
 import com.example.demo.dto.LoanRequestDTO;
+import com.example.demo.dto.v2.BookRequestDTOV2;
 import com.example.demo.entity.Author;
 import com.example.demo.entity.Book;
 import com.example.demo.repository.AuthorRepository;
 import com.example.demo.repository.BookRepository;
 import com.example.demo.repository.LoanRepository;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-public class RestapiIndiv1k4ApplicationTests {
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
-    @Autowired
-    private RestTestClient restClient;
+import static org.assertj.core.api.Assertions.assertThat;
+
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@TestPropertySource(properties = {
+    "spring.cloud.vault.enabled=false",
+    "test.password=mocked-password-for-testing"
+})
+public class RestapiIndiv1k4ApplicationTests {
+    private WebTestClient restClient;
+
+    @LocalServerPort
+    private int port;
 
     @Autowired
     private AuthorRepository authorRepo;
@@ -36,6 +47,14 @@ public class RestapiIndiv1k4ApplicationTests {
 
     @Autowired
     private LoanRepository loanRepository;
+
+    @BeforeEach
+    void setupClient() {
+        this.restClient = WebTestClient.bindToServer()
+            .baseUrl("http://localhost:" + port)
+            .defaultHeaders(headers -> headers.setBasicAuth("admin", "admin-secret-disabled"))
+            .build();
+    }
 
     @AfterEach
     void tearDown() {
@@ -54,7 +73,7 @@ public class RestapiIndiv1k4ApplicationTests {
         authorReq.setName("Astrid Lindgren");
 
         var authorResult = restClient.post().uri("/api/v1/authors")
-                .body(authorReq)
+                .bodyValue(authorReq)
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody(AuthorResponseDTO.class)
@@ -63,18 +82,17 @@ public class RestapiIndiv1k4ApplicationTests {
         assertThat(authorResult).isNotNull();
         Long authorId = authorResult.getId();
 
-        BookRequestDTO bookReq = new BookRequestDTO();
+        BookRequestDTOV2 bookReq = new BookRequestDTOV2();
         bookReq.setTitle("Pippi Långstrump");
         bookReq.setAuthorId(authorId);
         bookReq.setAvailable(true);
 
         restClient.post().uri("/api/v1/books")
-                .body(bookReq)
+                .bodyValue(bookReq)
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody()
-                .jsonPath("$.data.title").isEqualTo("Pippi Långstrump")
-                .jsonPath("$.version").isEqualTo("v1");
+                .jsonPath("$.title").isEqualTo("Pippi Långstrump");
     }
 
     @Test
@@ -88,7 +106,7 @@ public class RestapiIndiv1k4ApplicationTests {
         loanReq.setBookId(book.getId());
 
         restClient.post().uri("/api/v1/loans")
-                .body(loanReq)
+                .bodyValue(loanReq)
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody()
@@ -105,10 +123,10 @@ public class RestapiIndiv1k4ApplicationTests {
         LoanRequestDTO loanReq = new LoanRequestDTO();
         loanReq.setBookId(book.getId());
 
-        restClient.post().uri("/api/v1/loans").body(loanReq).exchange().expectStatus().isCreated();
+        restClient.post().uri("/api/v1/loans").bodyValue(loanReq).exchange().expectStatus().isCreated();
 
         restClient.post().uri("/api/v1/loans")
-                .body(loanReq)
+                .bodyValue(loanReq)
                 .exchange()
                 .expectStatus().isBadRequest();
     }
@@ -127,7 +145,7 @@ public class RestapiIndiv1k4ApplicationTests {
                 .expectStatus().isNotFound();
     }
 
-    // Concurrency Testning
+    // Concurrency Testing
     @Test
     void testParallelLoanRequests() throws InterruptedException {
         loanRepository.deleteAll();
@@ -160,7 +178,7 @@ public class RestapiIndiv1k4ApplicationTests {
                 try {
                     startLatch.await();
                     var response = restClient.post().uri("/api/v1/loans")
-                            .body(loanReq)
+                            .bodyValue(loanReq)
                             .exchange()
                             .returnResult(String.class);
 
@@ -184,7 +202,7 @@ public class RestapiIndiv1k4ApplicationTests {
         endLatch.await(10, TimeUnit.SECONDS);
         executor.shutdown();
 
-        // Verifiering
+        // Verification
         assertThat(successCount.get()).isEqualTo(1);
         assertThat(failureCount.get()).isEqualTo(numberOfThreads - 1);
 

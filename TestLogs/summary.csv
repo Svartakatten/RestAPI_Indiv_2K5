@@ -1,0 +1,4 @@
+Label,# Samples,Average,Min,Max,Std. Dev.,Error %,Throughput,Received KB/sec,Sent KB/sec,Avg. Bytes
+GET Book (REDIS CACHED),6148,42,20,235,"4,94","0,065%","12,81025","7,15","2,40","571,3"
+GET Book (H2 DIRECT),6144,15498,2,16101,"2397,85","3,190%","12,80817","7,92","2,42","633,4"
+TOTAL,12292,7767,2,16101,"7911,71","1,627%","25,61207","15,06","4,82","602,3"

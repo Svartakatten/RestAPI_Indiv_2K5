@@ -27,7 +27,7 @@ public class AuthorService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "authors", key = "#author.id")
+    @Cacheable(value = "authors", key = "#id")
     public AuthorResponseDTO getAuthorById(Long id) {
         Author author = authorRepository.findById(id)
                 .orElseThrow(() -> new AuthorNotFoundException("404: Author not found with the given id: " + id));
