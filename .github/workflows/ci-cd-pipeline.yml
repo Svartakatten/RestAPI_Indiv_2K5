@@ -83,13 +83,4 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/restapi:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/restapi:${{ github.sha }}
-
-      # Steg 3: Automatiserat deployment-steg utan .env-fil
-      - name: Deploy application
-        run: |
-          # 1. Autentisera servern mot Docker Hub
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-          
-          # 2. Skicka in variabeln direkt i kommandot för att uppdatera och starta
-          DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }} docker-compose pull
-          DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }} docker-compose up -d
+      # Test
