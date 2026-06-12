@@ -1,7 +1,10 @@
 package com.example.demo.service;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.cache.annotation.CacheEvict;
@@ -25,10 +28,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class BookService {
     
+    private static final Logger log = LoggerFactory.getLogger(BookService.class);
+
     private final BookRepository bookRepo;
     private final AuthorRepository authorRepo;
 
-    private final Map<Long, Boolean> availabilityCache = new ConcurrentHashMap<>();
+    private final Cache<Long, Boolean> availabilityCache = Caffeine.newBuilder()
+            .maximumSize(10000)
+            .expireAfterWrite(30, TimeUnit.MINUTES)
+            .build();
+
 
     public BookService(BookRepository bookRepo, AuthorRepository authorRepo) {
         this.bookRepo = bookRepo;
@@ -41,14 +50,16 @@ public class BookService {
         book.setTitle(request.getTitle());
 
         Author author = authorRepo.findById(request.getAuthorId())
-                .orElseThrow(() -> new AuthorNotFoundException("Author not found with id: " + request.getAuthorId()));
+                .orElseThrow(() -> {
+                    log.warn("Failed attempt to create book: Author with id {} missing", request.getAuthorId());
+                    return new AuthorNotFoundException("Author not found with id: " + request.getAuthorId());
+                });
         book.setAuthor(author);
 
         Book savedBook = bookRepo.save(book);
-
-        // Sparar till det virtuella fältet i lokal cache för att inte påverka den körande databasen
         availabilityCache.put(savedBook.getId(), request.isAvailable());
 
+        log.info("Book created with ID: {}, Title: {}, Author ID: {}", savedBook.getId(), savedBook.getTitle(), author.getId());
         return mapToResponse(savedBook);
     }
 
@@ -58,14 +69,16 @@ public class BookService {
         book.setTitle(request.getTitle());
 
         Author author = authorRepo.findById(request.getAuthorId())
-                .orElseThrow(() -> new AuthorNotFoundException("Author not found with id: " + request.getAuthorId()));
+                .orElseThrow(() -> {
+                    log.warn("Failed attempt to create book V2: Author with id {} missing", request.getAuthorId());
+                    return new AuthorNotFoundException("Author not found with id: " + request.getAuthorId());
+                });
         book.setAuthor(author);
 
         Book savedBook = bookRepo.save(book);
-
-        // Sparar till det virtuella fältet i lokal cache för att inte påverka den körande databasen
         availabilityCache.put(savedBook.getId(), request.isAvailable());
 
+        log.info("Book V2 created with ID: {}, Title: {}", savedBook.getId(), savedBook.getTitle());
         return convertToDtoV2(savedBook);
     }
 
@@ -73,23 +86,14 @@ public class BookService {
     @Transactional(readOnly = true)
     public BookResponseDTO getBookById(Long id) {
         Book book = bookRepo.findById(id)
-            .orElseThrow(() -> new BookNotFoundException("Book with id " + id + "missing"));
-
+            .orElseThrow(() -> new BookNotFoundException("Book with id " + id + " missing"));
         return mapToResponse(book);
     }
 
     @Transactional(readOnly = true)
     public BookResponseDTOV2 getBookByIdNoCache(Long id) {
-
-        try {
-            Thread.sleep(800);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        
         Book book = bookRepo.findById(id)
-            .orElseThrow(() -> new BookNotFoundException("Book with id " + id + "missing"));
-
+            .orElseThrow(() -> new BookNotFoundException("Book with id " + id + " missing"));
         return convertToDtoV2(book);
     }
 
@@ -97,15 +101,13 @@ public class BookService {
     @Transactional(readOnly = true)
     public BookResponseDTOV2 getBookByIdV2(Long id) {
         Book book = bookRepo.findById(id)
-            .orElseThrow(() -> new BookNotFoundException("Book with id " + id + "missing"));
-
+            .orElseThrow(() -> new BookNotFoundException("Book with id " + id + " missing"));
         return convertToDtoV2(book);
     }
 
     @Transactional(readOnly = true)
     public Page<BookResponseDTO> getAllBooks(Pageable pageable) {
         Page<Book> books = bookRepo.findAll(pageable);
-
         return books.map(this::mapToResponse);
     }
 
@@ -116,10 +118,12 @@ public class BookService {
     }
 
     @Transactional
-    @CacheEvict(value = "books", allEntries = true)
     public BookResponseDTO updateBook(Long id, BookRequestDTO request) {
-    Book book = bookRepo.findById(id)
-        .orElseThrow(() -> new BookNotFoundException("Book with id " + id + " not found"));
+        Book book = bookRepo.findById(id)
+            .orElseThrow(() -> {
+                log.warn("Failed attempt to update book: Book with id {} missing", id);
+                return new BookNotFoundException("Book with id " + id + " not found");
+            });
 
         book.setTitle(request.getTitle());
 
@@ -129,14 +133,17 @@ public class BookService {
 
         availabilityCache.put(id, request.isAvailable());
 
+        log.info("Book with ID {} ​​updated. New title: {}", id, book.getTitle());
         return mapToResponse(book);
     }
 
     @Transactional
-    @CacheEvict(value = "books", allEntries = true)
     public BookResponseDTOV2 updateBookV2(Long id, BookRequestDTOV2 request) {
-    Book book = bookRepo.findById(id)
-        .orElseThrow(() -> new BookNotFoundException("Book with id " + id + " not found"));
+        Book book = bookRepo.findById(id)
+            .orElseThrow(() -> {
+                log.warn("Failed attempt to update book V2: Book with id {} missing", id);
+                return new BookNotFoundException("Book with id " + id + " not found");
+            });
 
         book.setTitle(request.getTitle());
 
@@ -146,6 +153,7 @@ public class BookService {
 
         availabilityCache.put(id, request.isAvailable());
 
+        log.info("Book V2 with ID {} ​​updated. New title: {}", id, book.getTitle());
         return convertToDtoV2(book);
     }
 
@@ -153,18 +161,28 @@ public class BookService {
     @CacheEvict(value = "books", allEntries = true)
     public void removeBook(Long id) {
         Book book = bookRepo.findById(id)
-            .orElseThrow(() -> new BookNotFoundException("Book with id " + id + " missing"));
+            .orElseThrow(() -> {
+                log.warn("Failed attempt to delete book: Book with id {} missing", id);
+                return new BookNotFoundException("Book with id " + id + " missing");
+            });
 
         bookRepo.delete(book);
+        availabilityCache.invalidate(id);
+        log.info("Book with ID {} ​​has been deleted from the system", id);
     }
 
     @Transactional
     @CacheEvict(value = "books", allEntries = true)
     public void removeBookV2(Long id) {
         Book book = bookRepo.findById(id)
-            .orElseThrow(() -> new BookNotFoundException("Book with id " + id + " missing"));
+            .orElseThrow(() -> {
+                log.warn("Failed attempt to delete book V2: Book with id {} missing", id);
+                return new BookNotFoundException("Book with id " + id + " missing");
+            });
 
         bookRepo.delete(book);
+        availabilityCache.invalidate(id);
+        log.info("Book V2 with ID {} ​​has been deleted from the system", id);
     }
 
     private BookResponseDTO mapToResponse(Book book) {
@@ -177,9 +195,8 @@ public class BookService {
             response.setAuthorName(book.getAuthor().getName());
         }
 
-        // Hämtar ett virtuellt värde från cachen, annars default'ar till false om det inte finns
-        boolean isAvailable = availabilityCache.getOrDefault(book.getId(), false);
-        response.setAvailable(isAvailable);
+        Boolean isAvailable = availabilityCache.getIfPresent(book.getId());
+        response.setAvailable(isAvailable != null ? isAvailable : false);
 
         return response;
     }
@@ -188,9 +205,7 @@ public class BookService {
         BookResponseDTOV2 dto = new BookResponseDTOV2();
         dto.setId(book.getId());
         dto.setTitle(book.getTitle());
-        
         dto.setLibraryBranch(book.getLibraryBranch()); 
-        
         return dto;
     }
 
