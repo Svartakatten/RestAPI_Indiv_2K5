@@ -1,0 +1,30 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Steg 1: Checka ut koden till den virtuella maskinen
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Steg 2: Sätt upp Java 21-miljön
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # Steg 3: Kör enhetstester med Maven
+      - name: Run unit tests
+        run: mvn test

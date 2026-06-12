@@ -11,8 +11,8 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 
 import com.example.demo.dto.AuthorRequestDTO;
 import com.example.demo.dto.AuthorResponseDTO;
+import com.example.demo.dto.BookRequestDTO;
 import com.example.demo.dto.LoanRequestDTO;
-import com.example.demo.dto.v2.BookRequestDTOV2;
 import com.example.demo.entity.Author;
 import com.example.demo.entity.Book;
 import com.example.demo.repository.AuthorRepository;
@@ -82,7 +82,7 @@ public class RestapiIndiv1k4ApplicationTests {
         assertThat(authorResult).isNotNull();
         Long authorId = authorResult.getId();
 
-        BookRequestDTOV2 bookReq = new BookRequestDTOV2();
+        BookRequestDTO bookReq = new BookRequestDTO();
         bookReq.setTitle("Pippi Långstrump");
         bookReq.setAuthorId(authorId);
         bookReq.setAvailable(true);
