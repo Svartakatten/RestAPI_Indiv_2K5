@@ -10,32 +10,18 @@ För att köra detta projekt lokalt behöver du följande installerat på din ma
 * **Docker** (för att köra Redis-cachen och HashiCorp Vault)
 * **Git** ### Starta applikationen
 
-**1. Starta Redis-servern**
-API:et kräver en aktiv Redis-instans för att hantera cachningen. Starta en via Docker:
+### Starta Docker-containern
 
-```bash
-docker run -d --name redis-cache -p 6379:6379 redis
-```
+För att köra denna applikation lokalt via Docker Compose behöver du definiera miljövariabler.
 
-**Starta HashiCorp Vault (Dev Mode):**
-Starta Vault och sätt en statisk root token
+skapa din egen miljöfil:
+med namn ".env"
 
-docker run -d --name vault-dev -p 8200:8200 --cap-add=IPC_LOCK -e VAULT_DEV_ROOT_TOKEN_ID=my-root-token hashicorp/vault
+Öppna .env och lägg till DOCKERHUB_USERNAME=svartakatten eller eget om du kör det själv.
 
-**2. Konfiguerera Vault**
-När Vault är igång måste vi injicera de secrets som Spring Boot förväntar sig vid uppstart. Kör följande kommando för att lägga testlösenordet i rätt sökväg:
+Starta systemet:
+docker compose up -d
 
-docker exec -e VAULT_ADDR=[http://127.0.0.1:8200](http://127.0.0.1:8200) -it vault-dev vault kv put secret/application/restapi_indiv_1k4 test.password="MySuperSecretVaultPassword123!"
-
-**3. Starta Spring Boot-applikationen**
-För Git Bash / Mac / Linux
-
-VAULT_TOKEN="my-root-token" ./mvnw spring-boot:run
-
-(För PowerShell: Sätt $env:VAULT_TOKEN="my-root-token" före start).
-
-Observera:
-In-memory databasen H2 populeras automatiskt med testdata, såsom författare och böcker, vid uppstart via den inbyggda CommandLineRunner.
 
 ### API-Dokumentation (Swagger UI)
 
