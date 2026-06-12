@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # 1. Redis Cache
+  redis-cache:
+    image: redis:latest
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  # 2. HashiCorp Vault
+  vault-dev:
+    image: hashicorp/vault:latest
+    container_name: vault-dev
+    ports:
+      - "8200:8200"
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=my-root-token
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - app-network
+
+  # 3. Automatisk konfigurering av Vault
+  vault-init:
+    image: curlimages/curl:latest
+    container_name: vault-init
+    depends_on:
+      - vault-dev
+    networks:
+      - app-network
+    command: >
+      sh -c "
+        sleep 5 &&
+        curl --header 'X-Vault-Token: my-root-token' \
+             --request POST \
+             --data '{\"data\": {\"test.password\": \"MySuperSecretVaultPassword123!\"}}' \
+             http://vault-dev:8200/v1/secret/data/application/restapi_indiv_1k4
+      "
+
+  # 4. Din Spring Boot-applikation
+  spring-app:
+    image: ${DOCKERHUB_USERNAME}/restapi:latest
+    container_name: restapi
+    ports:
+      - "8080:8080"
+    environment:
+      - VAULT_TOKEN=my-root-token
+      - SPRING_CLOUD_VAULT_URI=http://vault-dev:8200
+      - SPRING_DATA_REDIS_HOST=redis-cache
+    depends_on:
+      vault-init:
+        condition: service_completed_successfully
+      redis-cache:
+        condition: service_started
+    networks:
+      - app-network
+
+# Definiera det isolerade nätverket
+networks:
+  app-network:
+    driver: bridge
